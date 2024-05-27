@@ -5,10 +5,9 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Tomaz Gomes Mascarenhas
 -/
 
-import Mathlib.Algebra.Parity
-import Mathlib.Data.Nat.Parity
 import Mathlib.Data.Real.Basic
 
+import Smt.Util.Mathlib.Parity
 import Smt.Reconstruct.Arith.MulPosNeg.Lemmas
 
 namespace Smt.Reconstruct.Arith
@@ -21,7 +20,7 @@ variable {a b : α}
 
 mutual
 
-theorem powNegEven : ∀ {k : Nat} {z : α}, z < 0 → Even k → z ^ k > 0 := by
+theorem powNegEven : ∀ {k : Nat} {z : α}, z < 0 → Nat.Even k → z ^ k > 0 := by
   intros k z h₁ h₂
   cases k with
   | zero    => simp
@@ -35,7 +34,7 @@ theorem powNegEven : ∀ {k : Nat} {z : α}, z < 0 → Even k → z ^ k > 0 := b
     rw [pow_succ, mul_comm]
     exact mulZ
 
-theorem powNegOdd : ∀ {k : Nat} {z : α}, z < 0 → Odd k → z ^ k < 0 := by
+theorem powNegOdd : ∀ {k : Nat} {z : α}, z < 0 → Nat.Odd k → z ^ k < 0 := by
   intros k z h₁ h₂
   cases k with
   | zero    => simp at h₂
@@ -64,7 +63,7 @@ theorem powPos : ∀ {k : Nat} {z : α}, z > 0 → z ^ k > 0 := by
     exact h₂
 
 theorem nonZeroEvenPow : ∀ {k : Nat} {z : α},
-    z ≠ 0 → Even k → z ^ k > 0 := by
+    z ≠ 0 → Nat.Even k → z ^ k > 0 := by
   intros k z h₁ h₂
   match lt_trichotomy z 0 with
   | Or.inl zNeg => exact powNegEven zNeg h₂

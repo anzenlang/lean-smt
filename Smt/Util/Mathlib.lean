@@ -5,5 +5,4 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Abdalrhman Mohamed
 -/
 
-import Smt.Util.Init
-import Smt.Util.Mathlib
+import Smt.Util.Mathlib.Parity
