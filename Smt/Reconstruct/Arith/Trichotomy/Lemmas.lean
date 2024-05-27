@@ -7,6 +7,7 @@ Authors: Tomaz Gomes Mascarenhas
 
 import Mathlib.Init.Order.Defs
 
+-- import Smt.Util.Mathlib.Algebra
 import Smt.Reconstruct.Prop.Lemmas
 import Smt.Reconstruct.Prop.PermutateOr
 

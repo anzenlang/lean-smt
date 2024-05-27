@@ -7,13 +7,16 @@ Authors: Abdalrhman Mohamed
 
 import Mathlib.Algebra.Order.Ring.Defs
 
+-- import Smt.Util.Mathlib.Group
+
 namespace Smt.Reconstruct.Arith
 
 -- https://github.com/cvc5/cvc5/blob/proof-new/src/theory/arith/rewrites
 
 open Function
 
-variable {α : Type} [h : LinearOrderedRing α]
+variable {α : Type}
+  [h : LinearOrderedRing α]
 
 variable {t ts x xs : α}
 
