@@ -7,7 +7,6 @@ Authors: Tomaz Gomes Mascarenhas
 
 import Lean
 
-import Mathlib.Data.Nat.Parity
 import Mathlib.Data.Real.Basic
 
 import Smt.Reconstruct.Arith.ArithMulSign.Lemmas
