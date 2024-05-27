@@ -73,6 +73,9 @@ theorem even_add : Even (m + n) ↔ (Even m ↔ Even n) := by
   <;> simp only [even_iff]
   <;> omega
 
+theorem even_add_one : Even (n + 1) ↔ ¬ Even n :=
+  by simp [even_add]
+
 end basics
 
 
@@ -91,8 +94,5 @@ theorem even_iff_not_odd : Even n ↔ ¬ Odd n := by
 @[simp]
 theorem odd_iff_not_even : Odd n ↔ ¬ Even n := by
   rw [not_even_iff, odd_iff]
-
-theorem even_add_one : Even (n + 1) ↔ ¬ (Even n) := by
-  sorry
 
 end even_odd_iff
