@@ -6,6 +6,7 @@ Authors: Adrien Champion
 -/
 
 import Smt.Util.Mathlib.Algebra
+import Smt.Util.Mathlib.Covariant
 
 
 namespace Smt
@@ -138,16 +139,16 @@ class AddCommSemigroup (α : Type u) extends AddSemigroup α, AddCommMagma α
 class AddMonoid (α : Type u) extends AddSemigroup α, AddZeroClass α where
   protected nsmul : Nat → α → α
   protected nsmul_zero : ∀ a : α, nsmul 0 a = 0 :=
-    by intros ; rfl
+    by intros ; simp
   protected nsmul_succ : ∀ (n : Nat) (a : α), nsmul n.succ a = nsmul n a + a :=
-    by intros ; rfl
+    by intros ; simp
 
 
 
 class AddMonoidWithOne (α : Type u) extends NatCast α, AddMonoid α, One α where
   natCast := Nat.unaryCast
-  natCast_zero : natCast 0 = 0 := by intros ; rfl
-  natCast_succ : ∀ n : Nat, natCast n.succ = natCast n + 1 := by intros ; rfl
+  natCast_zero : natCast 0 = 0 := by intros ; simp
+  natCast_succ : ∀ n : Nat, natCast n.succ = natCast n + 1 := by intros ; simp
 
 
 
@@ -163,10 +164,10 @@ class Monoid (α : Type u) extends Semigroup α, MulOneClass α where
   protected npow : Nat → α → α := Nat.npowRec
   /-- Raising to the power `(0 : Nat)` gives `1`. -/
   protected npow_zero : ∀ x, npow 0 x = 1 :=
-    by intros; rfl
+    by intros ; rfl
   /-- Raising to the power `(n + 1 : Nat)` behaves as expected. -/
   protected npow_succ : ∀ (n : Nat) (x : α), npow (n + 1) x = npow n x * x :=
-    by intros; rfl
+    by intros ; simp
 
 
 
@@ -178,15 +179,15 @@ def SubNegMonoid.sub' {α : Type u} [AddMonoid α] [Neg α] (a b : α) : α := a
 
 class SubNegMonoid (α : Type u) extends AddMonoid α, Neg α, Sub α where
   protected sub := SubNegMonoid.sub'
-  protected sub_eq_add_neg : ∀ a b : α, a - b = a + -b := by intros; rfl
+  protected sub_eq_add_neg : ∀ a b : α, a - b = a + -b := by intros ; simp
   protected zsmul : Int → α → α
-  protected zsmul_zero' : ∀ a : α, zsmul 0 a = 0 := by intros; rfl
+  protected zsmul_zero' : ∀ a : α, zsmul 0 a = 0 := by intros ; simp
   protected zsmul_succ' (n : Nat) (a : α) :
     zsmul (Int.ofNat n.succ) a = zsmul (Int.ofNat n) a + a
-  := by intros ; rfl
+  := by intros ; simp
   protected zsmul_neg' (n : Nat) (a : α) :
     zsmul (Int.negSucc n) a = -zsmul n.succ a
-  := by intros ; rfl
+  := by intros ; simp
 
 
 
@@ -213,10 +214,10 @@ class AddGroupWithOne (α : Type u) extends IntCast α, AddMonoidWithOne α, Add
   /-- The canonical homomorphism `Int → α`. -/
   intCast := Int.castDef
   /-- The canonical homomorphism `Int → α` agrees with the one from `Nat → α` on `Nat`. -/
-  intCast_ofNat : ∀ n : Nat, intCast (n : Nat) = Nat.cast n := by intros; rfl
+  intCast_ofNat : ∀ n : Nat, intCast (n : Nat) = Nat.cast n := by intros ; simp
   /-- The canonical homomorphism `Int → α` for negative values is just the negation of the values
   of the canonical homomorphism `Nat → α`. -/
-  intCast_negSucc : ∀ n : Nat, intCast (Int.negSucc n) = - Nat.cast (n + 1) := by intros; rfl
+  intCast_negSucc : ∀ n : Nat, intCast (Int.negSucc n) = - Nat.cast (n + 1) := by intros ; simp
 
 class OrderedAddCommGroup (α : Type u) extends AddCommGroup α, PartialOrder α where
   /-- Addition is monotone in an ordered additive commutative group. -/
@@ -337,6 +338,88 @@ class StrictOrderedRing (α : Type u) extends Ring α, OrderedAddCommGroup α, N
   /-- The product of two positive elements is positive. -/
   protected mul_pos : ∀ a b : α, 0 < a → 0 < b → 0 < a * b
 
+namespace StrictOrderedRing
+variable {α : Type u} [StrictOrderedRing α]
+
+instance instCovariantAddLE : CovariantClass α α (· + ·) (· ≤ ·) where
+  elim _ _ _ h := StrictOrderedRing.add_le_add_left _ _ h _
+
+instance instCovariantSwapAddLE : CovariantClass α α (swap (· + ·)) (· ≤ ·) where
+  elim c a b h := by
+    simp [swap, AddCommMagma.add_comm]
+    apply add_le_add_left h c
+
+instance instCovariantAddLT : CovariantClass α α (· + ·) (· < ·) where
+  elim c a b := by
+    simp [lt_iff_le_not_le]
+    intro hab nhba
+    apply And.intro (add_le_add_left hab c)
+    intro h
+    let assoc := add_assoc (α := α)
+    let hba := add_le_add_left h (- c)
+    simp [← assoc (-c) c b, ← assoc (-c) c a, add_left_neg, zero_add] at hba
+    contradiction
+
+instance instCovariantSwapAddLT : CovariantClass α α (swap (· + ·)) (· < ·) where
+  elim c a b h := by
+    simp [swap, AddCommMagma.add_comm]
+    apply instCovariantAddLT.elim c h
+end StrictOrderedRing
+
 
 
 class LinearOrderedRing (α : Type u) extends StrictOrderedRing α, LinearOrder α
+
+namespace LinearOrderedRing
+variable [LinearOrderedRing α]
+
+instance instInt : LinearOrderedRing Int where
+  add_assoc := Int.add_assoc
+  zero_add := Int.zero_add
+  add_zero := Int.add_zero
+  add_comm := Int.add_comm
+  zero_mul := Int.zero_mul
+  mul_zero := Int.mul_zero
+  mul_assoc := Int.mul_assoc
+  one_mul := Int.one_mul
+  mul_one := Int.mul_one
+  neg := Int.neg
+  decidableLT := inferInstance
+  decidableLE := inferInstance
+  add_left_neg := Int.add_left_neg
+  add_le_add_left := @Int.add_le_add_left
+  nsmul := (· * ·)
+  nsmul_zero := by simp
+  nsmul_succ n a := by simp [Int.ofNat_succ, Int.add_mul]
+  left_distrib := Int.mul_add
+  right_distrib := Int.add_mul
+  zsmul := (· * ·)
+  exists_pair_ne := ⟨0, 1, by simp⟩
+  zero_le_one := by simp
+  mul_pos := @Int.mul_pos
+  le_total := Int.le_total
+  natCast_zero := by simp
+  natCast_succ := by
+    simp [NatCast.natCast, Int.ofNat_succ, Int.add_mul]
+  npow_zero := by
+    simp [Nat.npowRec]
+  npow_succ := by simp [Nat.npowRec]
+  sub_eq_add_neg := by
+    simp [Int.sub_eq_add_neg, Neg.neg]
+  zsmul_zero' := by
+    simp
+  zsmul_succ' := by simp [Int.ofNat_succ, Int.add_mul]
+  zsmul_neg' n a := by
+    conv =>
+      rhs
+      congr
+      simp
+    rw [← Int.neg_mul]
+    simp [Int.neg_ofNat_succ]
+  intCast_ofNat := by
+    simp [IntCast.intCast]
+  intCast_negSucc n := by
+    conv =>
+      lhs
+      simp [IntCast.intCast]
+end LinearOrderedRing

@@ -5,8 +5,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Adrien Champion
 -/
 
-import Smt.Util.Mathlib.Function
-import Smt.Util.Mathlib.Parity
-import Smt.Util.Mathlib.Algebra
-import Smt.Util.Mathlib.Group
-import Smt.Util.Mathlib.Real
+namespace Smt
+
+
+
+abbrev Function.swap {φ : α → β → Sort u₃} (f : ∀ x y, φ x y) : ∀ y x, φ x y :=
+  fun y x => f x y
+
+export Function (swap)
