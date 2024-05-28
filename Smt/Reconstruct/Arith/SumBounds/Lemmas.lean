@@ -5,7 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Tomaz Gomes Mascarenhas
 -/
 
-import Mathlib.Algebra.Order.Ring.Defs
+import Smt.Util.Mathlib.Group
 
 namespace Smt.Reconstruct.Arith
 

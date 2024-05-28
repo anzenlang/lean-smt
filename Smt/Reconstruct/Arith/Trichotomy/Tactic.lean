@@ -7,11 +7,9 @@ Authors: Tomaz Gomes Mascarenhas
 
 import Lean
 
--- we must import those to have visible instances of LinearOrder of
--- Nat, Int and Real
-import Mathlib.Data.Real.Basic
-
 import Smt.Reconstruct.Arith.Trichotomy.Lemmas
+-- we must import those to have visible instances of `Smt.LinearOrder` of `Nat`, `Int` and `Real`.
+import Smt.Util.Mathlib.Real
 
 namespace Smt.Reconstruct.Arith
 

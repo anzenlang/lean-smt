@@ -5,9 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Tomaz Gomes Mascarenhas
 -/
 
-import Mathlib.Init.Order.Defs
-
--- import Smt.Util.Mathlib.Algebra
+import Smt.Util.Mathlib.Algebra
 import Smt.Reconstruct.Prop.Lemmas
 import Smt.Reconstruct.Prop.PermutateOr
 
