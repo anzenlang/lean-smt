@@ -130,6 +130,24 @@ class LinearOrder (α : Type u) extends PartialOrder α, Min α, Max α, Ord α 
   decidableLT : @DecidableRel α (· < ·)
 
 section top_level
+instance instLinearOrderNat : LinearOrder Nat where
+  le_refl := Nat.le_refl
+  le_trans := @Nat.le_trans
+  le_antisymm := @Nat.le_antisymm
+  le_total := Nat.le_total
+  decidableLE := inferInstance
+  decidableLT := inferInstance
+  lt_iff_le_not_le := @Nat.lt_iff_le_not_le
+
+instance instLinearOrderInt : LinearOrder Int where
+  le_refl := Int.le_refl
+  le_trans := @Int.le_trans
+  le_antisymm := @Int.le_antisymm
+  le_total := Int.le_total
+  decidableLE := inferInstance
+  decidableLT := inferInstance
+  lt_iff_le_not_le := @Int.lt_iff_le_not_le
+
 variable [inst : LinearOrder α]
 
 scoped instance : @DecidableRel α (· ≤ ·) :=
@@ -148,15 +166,13 @@ theorem LinearOrder.lt_or_eq_of_le
   else Or.inl (lt_of_le_not_le hab hba)
 
 theorem lt_trichotomy (a b : α) : a < b ∨ a = b ∨ b < a :=
-  Or.elim (le_total a b)
+  le_total a b |>.elim
     (fun h : a ≤ b =>
-      Or.elim
-        (LinearOrder.lt_or_eq_of_le h)
+      LinearOrder.lt_or_eq_of_le h |>.elim
         (fun h : a < b => Or.inl h)
         fun h : a = b => Or.inr (Or.inl h))
     fun h : b ≤ a =>
-      Or.elim
-        (LinearOrder.lt_or_eq_of_le h)
+      LinearOrder.lt_or_eq_of_le h |>.elim
         (fun h : b < a => Or.inr (Or.inr h))
         fun h : b = a => Or.inr (Or.inl h.symm)
 end top_level
