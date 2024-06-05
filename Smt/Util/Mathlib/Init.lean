@@ -16,6 +16,13 @@ namespace Smt
 
 
 
+abbrev Function.swap {φ : α → β → Sort u₃} (f : ∀ x y, φ x y) : ∀ y x, φ x y :=
+  fun y x => f x y
+
+export Function (swap)
+
+
+
 class Zero (α : Type u) where
   zero : α
 
@@ -55,6 +62,12 @@ instance Int.instOne : One Int := ⟨1⟩
 
 instance Rat.instOne : One Rat := ⟨1⟩
 end One
+
+
+
+def npowRec [One α] [Mul α] : Nat → α → α
+| 0, _ => 1
+| n + 1, a => npowRec n a * a
 
 
 
@@ -121,6 +134,12 @@ class Inv (α : Type u) where
   inv : α → α
 
 postfix:max "⁻¹" => Inv.inv
+
+
+
+def zpowRec [One α] [Mul α] [Inv α] (npow : Nat → α → α := npowRec) : Int → α → α
+| Int.ofNat n, a => npow n a
+| Int.negSucc n, a => (npow n.succ a)⁻¹
 
 
 
@@ -204,6 +223,8 @@ theorem cast_id (n : Rat≥0) : NNRat.cast n = n := rfl
 @[simp]
 theorem cast_eq_id : NNRat.cast = id := rfl
 
+def castRec [NatCast α] [Div α] (q : Rat≥0) : α := q.num / q.den
+
 end NNRat
 
 
@@ -221,13 +242,16 @@ instance instRatCast : RatCast Rat where ratCast n := n
 order to aid in creating instances of `DivisionRing`.
 -/
 @[coe, reducible, match_pattern] protected
-def Rat.cast {α : Type u} [RatCast α] : Rat → α :=
+def cast {α : Type u} [RatCast α] : Rat → α :=
   RatCast.ratCast
 
 @[norm_cast]
 theorem cast_id (n : Rat) : Rat.cast n = n := rfl
 @[simp]
 theorem cast_eq_id : Rat.cast = id := rfl
+
+def castRec [NatCast α] [IntCast α] [Div α] (q : Rat) : α :=
+  q.num / q.den
 
 end Rat
 

@@ -6,6 +6,9 @@ Authors: Adrien Champion
 -/
 
 
+import Smt.Util.Mathlib.Init
+
+
 
 namespace Smt
 
@@ -49,7 +52,7 @@ theorem le_not_le_of_lt : ∀ {a b : α}, a < b → a ≤ b ∧ ¬b ≤ a
 theorem not_le_of_lt {a b : α} (h : a < b) : ¬b ≤ a :=
   (le_not_le_of_lt h).right
 
-abbrev _root_.LT.lt.not_le := @not_le_of_lt
+abbrev LT.not_le := @not_le_of_lt
 
 theorem lt_trans : ∀ {a b c : α}, a < b → b < c → a < c
 | a, b, c => by

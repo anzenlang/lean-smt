@@ -303,8 +303,8 @@ theorem Int.cast_nonneg [StrictOrderedRing α] : ∀ {n : Int}, (0 : α) ≤ n �
         zero_lt_one
     simpa only [
       cast_negSucc, Nat.cast_add, Nat.cast_one, neg_add_rev,
-      ← sub_eq_add_neg, sub_nonneg, le_neg, (Int.negSucc_lt_zero n).not_le, iff_false
-    ] using this.not_le
+      ← sub_eq_add_neg, sub_nonneg, le_neg, LT.not_le (Int.negSucc_lt_zero n), iff_false
+    ] using LT.not_le this
 
 theorem Int.cast_le {m n : Int} : (m : α) ≤ n ↔ m ≤ n := by
   rw [← sub_nonneg, ← cast_sub, cast_nonneg, sub_nonneg]
