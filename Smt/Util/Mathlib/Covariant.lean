@@ -27,6 +27,13 @@ class CovariantClass : Prop where
 
 class ContravariantClass : Prop where
   protected elim : Contravariant M N μ r
+
+theorem rel_iff_cov
+  [CovariantClass M N μ r]
+  [ContravariantClass M N μ r]
+  (m : M) {a b : N}
+: r (μ m a) (μ m b) ↔ r a b :=
+  ⟨ContravariantClass.elim _, CovariantClass.elim _⟩
 end basics
 
 
@@ -74,30 +81,72 @@ end instances
 
 
 
+section
+variable [LE α] [LT α]
+
 theorem add_le_add_left
-  [Add α] [LE α]
-  [CovariantClass α α (· + ·) (· ≤ ·)]
+  [Add α] [CovariantClass α α (· + ·) (· ≤ ·)]
   {b c : α} (hbc : b ≤ c) (a : α)
 : a + b ≤ a + c :=
   CovariantClass.elim _ hbc
 
 theorem add_le_add_right
-  [Add α] [LE α]
-  [inst : CovariantClass α α (swap (· + ·)) (· ≤ ·)]
+  [Add α] [inst : CovariantClass α α (swap (· + ·)) (· ≤ ·)]
   {b c : α} (hbc : b ≤ c) (a : α)
 : b + a ≤ c + a :=
   inst.elim _ hbc
 
 theorem add_lt_add_left
-  [Add α] [LT α]
-  [CovariantClass α α (· + ·) (· < ·)]
+  [Add α] [CovariantClass α α (· + ·) (· < ·)]
   {b c : α} (hbc : b < c) (a : α)
 : a + b < a + c :=
   CovariantClass.elim _ hbc
 
 theorem add_lt_add_right
-  [Add α] [LT α]
-  [inst : CovariantClass α α (swap (· + ·)) (· < ·)]
+  [Add α] [inst : CovariantClass α α (swap (· + ·)) (· < ·)]
   {b c : α} (hbc : b < c) (a : α)
 : b + a < c + a :=
   inst.elim _ hbc
+
+theorem mul_lt_mul_iff_left
+  [Mul α] [CovariantClass α α (· * ·) (· < ·)] [ContravariantClass α α (· * ·) (· < ·)]
+  (a : α) {b c : α}
+: a * b < a * c ↔ b < c :=
+  rel_iff_cov α α (· * ·) (· < ·) a
+
+theorem mul_lt_mul_iff_right
+  [Mul α] [CovariantClass α α (swap (· * ·)) (· < ·)]
+  [ContravariantClass α α (swap (· * ·)) (· < ·)]
+  (a : α) {b c : α}
+: b * a < c * a ↔ b < c :=
+  rel_iff_cov α α (swap (· * ·)) (· < ·) a
+
+theorem add_lt_add_iff_left
+  [Add α] [CovariantClass α α (· + ·) (· < ·)] [ContravariantClass α α (· + ·) (· < ·)]
+  (a : α) {b c : α}
+: a + b < a + c ↔ b < c :=
+  rel_iff_cov α α (· + ·) (· < ·) a
+
+theorem add_lt_add_iff_right
+  [Add α]
+  [CovariantClass α α (swap (· + ·)) (· < ·)]
+  [ContravariantClass α α (swap (· + ·)) (· < ·)]
+  (a : α) {b c : α}
+: b + a < c + a ↔ b < c :=
+  rel_iff_cov α α (swap (· + ·)) (· < ·) a
+
+theorem add_le_add_iff_left
+  [Add α]
+  [CovariantClass α α (· + ·) (· ≤ ·)]
+  [ContravariantClass α α (· + ·) (· ≤ ·)]
+  (a : α) {b c : α}
+: a + b ≤ a + c ↔ b ≤ c :=
+  rel_iff_cov α α (· + ·) (· ≤ ·) a
+
+theorem add_le_add_iff_right
+  [Add α] [LE α]
+  [CovariantClass α α (swap (· + ·)) (· ≤ ·)] [ContravariantClass α α (swap (· + ·)) (· ≤ ·)]
+  (a : α) {b c : α}
+: b + a ≤ c + a ↔ b ≤ c :=
+  rel_iff_cov α α (swap (· + ·)) (· ≤ ·) a
+end

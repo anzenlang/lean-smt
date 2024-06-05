@@ -14,19 +14,25 @@ namespace Smt
 /-- A preorder is a reflexive, transitive relation `≤` with `a < b` defined in the obvious way. -/
 class Preorder (α : Type u) extends LE α, LT α where
   le_refl : ∀ a : α, a ≤ a
-  protected le_trans : ∀ a b c : α, a ≤ b → b ≤ c → a ≤ c
-  lt := fun a b => a ≤ b ∧ ¬ b ≤ a
-  lt_iff_le_not_le : ∀ a b : α, a < b ↔ a ≤ b ∧ ¬ b ≤ a := by
-    intros
-    rfl
+  protected
+  le_trans : ∀ a b c : α, a ≤ b → b ≤ c → a ≤ c
+  lt a b :=
+    a ≤ b ∧ ¬ b ≤ a
+  lt_iff_le_not_le : ∀ a b : α, a < b ↔ a ≤ b ∧ ¬ b ≤ a :=
+    by intros ; rfl
 
 section top_level
 variable [Preorder α]
 
+@[simp]
 theorem le_refl : ∀ a : α, a ≤ a :=
   Preorder.le_refl
+
 theorem le_rfl {a : α} : a ≤ a :=
   le_refl a
+
+theorem le_trans : ∀ {a b c : α}, a ≤ b → b ≤ c → a ≤ c :=
+  Preorder.le_trans _ _ _
 
 theorem lt_iff_le_not_le : ∀ {a b : α}, a < b ↔ a ≤ b ∧ ¬b ≤ a :=
   Preorder.lt_iff_le_not_le _ _
@@ -40,8 +46,10 @@ theorem lt_of_le_not_le : ∀ {a b : α}, a ≤ b → ¬b ≤ a → a < b
 theorem le_not_le_of_lt : ∀ {a b : α}, a < b → a ≤ b ∧ ¬b ≤ a
   | _a, _b, hab => lt_iff_le_not_le.mp hab
 
-theorem le_trans : ∀ {a b c : α}, a ≤ b → b ≤ c → a ≤ c :=
-  Preorder.le_trans _ _ _
+theorem not_le_of_lt {a b : α} (h : a < b) : ¬b ≤ a :=
+  (le_not_le_of_lt h).right
+
+abbrev _root_.LT.lt.not_le := @not_le_of_lt
 
 theorem lt_trans : ∀ {a b c : α}, a < b → b < c → a < c
 | a, b, c => by
@@ -115,6 +123,14 @@ variable [PartialOrder α]
 
 theorem le_antisymm {a b : α} : a ≤ b → b ≤ a → a = b :=
   PartialOrder.le_antisymm a b
+
+theorem lt_of_le_ne {a b : α} : a ≤ b → a ≠ b → a < b := by
+  intro h_ab h_eq
+  rw [lt_iff_le_not_le]
+  apply And.intro h_ab
+  intro h_ba
+  let wrong := le_antisymm h_ab h_ba
+  contradiction
 end top_level
 
 
@@ -158,7 +174,7 @@ scoped instance : @DecidableRel α (· < ·) :=
 theorem le_total : ∀ (a b : α), a ≤ b ∨ b ≤ a :=
   LinearOrder.le_total
 
-theorem LinearOrder.lt_or_eq_of_le
+theorem lt_or_eq_of_le
   {a b : α} (hab : a ≤ b)
 : a < b ∨ a = b :=
   if hba : b ≤ a
@@ -168,11 +184,39 @@ theorem LinearOrder.lt_or_eq_of_le
 theorem lt_trichotomy (a b : α) : a < b ∨ a = b ∨ b < a :=
   le_total a b |>.elim
     (fun h : a ≤ b =>
-      LinearOrder.lt_or_eq_of_le h |>.elim
+      lt_or_eq_of_le h |>.elim
         (fun h : a < b => Or.inl h)
         fun h : a = b => Or.inr (Or.inl h))
     fun h : b ≤ a =>
-      LinearOrder.lt_or_eq_of_le h |>.elim
+      lt_or_eq_of_le h |>.elim
         (fun h : b < a => Or.inr (Or.inr h))
         fun h : b = a => Or.inr (Or.inl h.symm)
+
+theorem le_of_not_lt {a b : α} (h : ¬b < a) : a ≤ b :=
+  match lt_trichotomy a b with
+  | Or.inl hlt => le_of_lt hlt
+  | Or.inr (Or.inl HEq) => HEq ▸ le_refl a
+  | Or.inr (Or.inr hgt) => absurd hgt h
+
+theorem le_of_not_gt {a b : α} : ¬a > b → a ≤ b :=
+  le_of_not_lt
+
+theorem lt_of_not_ge {a b : α} (h : ¬a ≥ b) : a < b :=
+  lt_of_le_not_le ((le_total _ _).resolve_right h) h
+
+theorem lt_iff_not_ge (x y : α) : x < y ↔ ¬x ≥ y :=
+  ⟨not_le_of_gt, lt_of_not_ge⟩
+
+@[simp]
+theorem not_lt {a b : α} : ¬a < b ↔ b ≤ a :=
+  ⟨le_of_not_gt, not_lt_of_ge⟩
+
+@[simp]
+theorem not_le {a b : α} : ¬a ≤ b ↔ b < a :=
+  (lt_iff_not_ge _ _).symm
 end top_level
+
+
+
+def GaloisConnection [Preorder α] [Preorder β] (l : α → β) (u : β → α) :=
+  ∀ a b, l a ≤ b ↔ a ≤ u b
