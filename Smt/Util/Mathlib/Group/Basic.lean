@@ -215,6 +215,18 @@ end lemmas
 
 
 
+@[ext]
+class CommMagma (α : Type u) extends Mul α where
+  /-- Multiplication is commutative in a commutative multiplicative magma. -/
+  protected mul_comm : ∀ a b : α, a * b = b * a
+
+
+
+@[ext]
+class CommSemigroup (α : Type u) extends Semigroup α, CommMagma α where
+
+
+@[ext]
 class AddCommSemigroup (α : Type u) extends AddSemigroup α, AddCommMagma α
 
 
@@ -301,6 +313,10 @@ class Monoid (α : Type u) extends Semigroup α, MulOneClass α where
   /-- Raising to the power `(n + 1 : Nat)` behaves as expected. -/
   protected npow_succ : ∀ (n : Nat) (x : α), npow (n + 1) x = npow n x * x :=
     by intros ; simp
+
+
+
+class CommMonoid (α : Type u) extends Monoid α, CommSemigroup α
 
 
 
@@ -621,6 +637,9 @@ extends NonUnitalNonAssocSemiring α, MulZeroOneClass α, AddCommMonoidWithOne �
 class Semiring (α : Type u)
 extends NonUnitalSemiring α, NonAssocSemiring α, MonoidWithZero α
 
+/-- A commutative semiring is a semiring with commutative multiplication. -/
+class CommSemiring (α : Type u) extends Semiring α, CommMonoid α
+
 
 
 class HasDistribNeg (α : Type u) [Mul α] extends InvolutiveNeg α where
@@ -645,6 +664,13 @@ end lemmas
 
 
 class Ring (α : Type u) extends Semiring α, AddCommGroup α, AddGroupWithOne α
+
+
+
+class CommRing (α : Type u) extends Ring α, CommMonoid α
+
+instance (priority := 100) CommRing.toCommSemiring [s : CommRing α] : CommSemiring α :=
+  { s with }
 
 
 
@@ -839,25 +865,12 @@ end LinearOrderedRing
 
 
 
+class LinearOrderedCommRing (α : Type u) extends LinearOrderedRing α, CommMonoid α
+
+
+
 class FloorRing (α : Type u) [LinearOrderedRing α] where
   floor : α → Int
   ceil : α → Int
   gc_coe_floor : GaloisConnection Int.cast floor
   gc_ceil_coe : GaloisConnection ceil Int.cast
-
-
-
-class Archimedean (α) [OrderedAddCommMonoid α] : Prop where
-  /-- For any two elements `x`, `y` such that `0 < y`, there exists a natural number `n`
-  such that `x ≤ n • y`. -/
-  arch : ∀ (x : α) {y : α}, 0 < y → ∃ n : Nat, x ≤ n * y
-
-
-
-namespace Archimedean
-variable [StrictOrderedRing α] [Archimedean α]
-
-theorem lt_of_le_of_lt [Preorder α] : ∀ {a b c : α}, a ≤ b → b < c → a < c
-  | _a, _b, _c, hab, hbc =>
-    let ⟨hbc, hcb⟩ := le_not_le_of_lt hbc
-    lt_of_le_not_le (le_trans hab hbc) fun hca => hcb (le_trans hca hab)

@@ -7,16 +7,68 @@ Authors: Adrien Champion
 
 import Smt.Util.Mathlib.Algebra
 import Smt.Util.Mathlib.Covariant
-import Smt.Util.Mathlib.Group.Basic
+import Smt.Util.Mathlib.Group.Nat
+import Smt.Util.Mathlib.Group.Int
 
 
 namespace Smt
 
 
 
+namespace Int
+
+variable [LinearOrderedRing α] [FloorRing α]
+
+/-- `Int.floor a` is the greatest integer `z` such that `z ≤ a`. It is denoted with `⌊a⌋`. -/
+def floor : α → Int :=
+  FloorRing.floor
+
+/-- `Int.ceil a` is the smallest integer `z` such that `a ≤ z`. It is denoted with `⌈a⌉`. -/
+def ceil : α → Int :=
+  FloorRing.ceil
+
+/-- `Int.fract a`, the fractional part of `a`, is `a` minus its floor. -/
+def fract (a : α) : α :=
+  a - floor a
+
 @[simp]
-theorem Nat.cast_zero [AddGroupWithOne R] : ((0 : Nat) : R) = 0 := by
-  simp [AddMonoidWithOne.natCast_zero]
+theorem floor_int : (Int.floor : Int → Int) = id :=
+  rfl
+
+@[simp]
+theorem ceil_int : (Int.ceil : Int → Int) = id :=
+  rfl
+
+@[simp]
+theorem fract_int : (Int.fract : Int → Int) = fun _ => 0 :=
+  funext fun x => by simp [fract]
+
+@[inherit_doc]
+notation "⌊" a "⌋" => Int.floor a
+
+@[inherit_doc]
+notation "⌈" a "⌉" => Int.ceil a
+end Int
+
+
+
+class Archimedean (α) [OrderedAddCommMonoid α] : Prop where
+  /-- For any two elements `x`, `y` such that `0 < y`, there exists a natural number `n`
+  such that `x ≤ n • y`. -/
+  arch : ∀ (x : α) {y : α}, 0 < y → ∃ n : Nat, x ≤ n * y
+
+
+
+namespace Archimedean
+variable [StrictOrderedRing α] [Archimedean α]
+
+theorem lt_of_le_of_lt [Preorder α] : ∀ {a b c : α}, a ≤ b → b < c → a < c
+  | _a, _b, _c, hab, hbc =>
+    let ⟨hbc, hcb⟩ := le_not_le_of_lt hbc
+    lt_of_le_not_le (le_trans hab hbc) fun hca => hcb (le_trans hca hab)
+end Archimedean
+
+
 
 namespace Int
 instance instLinearOrderedRing : LinearOrderedRing Int where
@@ -71,8 +123,6 @@ instance instLinearOrderedRing : LinearOrderedRing Int where
 
 abbrev toLor := @instLinearOrderedRing
 
-theorem cast_id {n : Int} : Int.cast n = n := rfl
-
 theorem neg_zero : -(0 : Int) = 0 := rfl
 
 
@@ -93,12 +143,6 @@ theorem cast_neg : ∀ n, ((-n : Int) : R) = -n
     simp only [Int.neg_negSucc, I.intCast_negSucc, neg_neg]
     erw [← I.intCast_ofNat]
 end
-
-instance instFloorRing : FloorRing Int where
-  floor := id
-  ceil := id
-  gc_coe_floor a b := by rw [Int.cast_id] ; rfl
-  gc_ceil_coe a b := by rw [Int.cast_id] ; rfl
 
 protected
 theorem le.dest_sub {a b : Int} (h : a ≤ b) : ∃ n : Nat, b - a = n := by
@@ -219,19 +263,6 @@ end Int
 section top
 variable [Self : AddGroupWithOne α]
 
-@[simp]
-theorem Nat.cast_succ (n : Nat) : ((Nat.succ n : Nat) : α) = n + 1 :=
-  AddMonoidWithOne.natCast_succ _
-
-@[simp]
-theorem Nat.cast_one : ((1 : Nat) : α) = 1 := by
-  rw [Nat.cast_succ, Nat.cast_zero, zero_add]
-
-@[simp]
-theorem Nat.cast_add (m n : Nat) : ((m + n : Nat) : α) = m + n := by
-  induction n
-  <;> simp [Nat.add_succ, add_assoc, Nat.add_zero, Nat.cast_one, Nat.cast_zero, Self.add_zero, *]
-
 @[simp] theorem ofNat_eq_coe : Int.ofNat n = Nat.cast n := rfl
 
 @[simp, norm_cast]
@@ -245,7 +276,6 @@ theorem Int.cast_ofNat (n : Nat) : ((n : Int) : α) = n :=
 theorem cast_negSucc (n : Nat) : (Int.negSucc n : α) = -(n + 1 : Nat) :=
   AddGroupWithOne.intCast_negSucc n
 
-set_option tactic.simp.trace true in
 @[simp, norm_cast]
 theorem Int.cast_subNatNat (m n : Nat) : ((Int.subNatNat m n : α) : α) = m - n := by
   unfold Int.subNatNat
@@ -282,8 +312,6 @@ end top
 
 section top
 variable [StrictOrderedRing α]
-
-#check (inferInstance : CovariantClass α α (swap (· + ·)) (· ≤ ·))
 
 @[simp low]
 theorem Nat.cast_nonneg' (n : Nat) : 0 ≤ (n : α) :=
@@ -400,33 +428,3 @@ def Archimedean.floorRing : FloorRing α :=
   FloorRing.ofFloor α (fun a => Classical.choose (exists_floor a)) fun z a =>
     (Classical.choose_spec (exists_floor a) z).symm
 end Archimedean
-
-namespace FloorRing
--- /-- A linear ordered field that is a floor ring is archimedean. -/
--- instance
---   (priority := 100) FloorRing.archimedean
---   (α : Type u) [LinearOrderedRing α] [FloorRing α]
--- : Archimedean α := by
---   rw [archimedean_iff_int_le]
---   exact fun x => ⟨ceil x, Int.le_ceil x⟩
-end FloorRing
-end scope
-
-
--- /-- A linear ordered archimedean ring is a floor ring. This is not an `instance` because in some
--- cases we have a computable `floor` function. -/
--- noncomputable def Archimedean.floorRing
---   (α : Type u)
---   [LinearOrderedRing α] [Archimedean α]
--- : FloorRing α :=
---   FloorRing.ofFloor α (fun a => Classical.choose (exists_floor a)) fun z a =>
---     (Classical.choose_spec (exists_floor a) z).symm
-
--- -- see Note [lower instance priority]
--- /-- A linear ordered field that is a floor ring is archimedean. -/
--- instance (priority := 100) FloorRing.archimedean
---   (α : Type u) [LinearOrderedField α] [FloorRing α]
--- : Archimedean α := by
---   rw [archimedean_iff_int_le]
---   exact fun x => ⟨⌈x⌉, Int.le_ceil x⟩
--- #align floor_ring.archimedean FloorRing.archimedean

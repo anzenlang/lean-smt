@@ -7,7 +7,7 @@ Authors: Adrien Champion
 
 
 
-import Smt.Util.Mathlib.Group.Basic
+import Smt.Util.Mathlib.Group.Extra
 
 
 
@@ -71,18 +71,6 @@ class DivisionRing (α : Type u)
   Do not use this lemma directly. Use `Rat.cast_def` instead. -/
   protected qsmul_def (a : Rat) (x : α) : qsmul a x = Rat.cast a * x := by intros; rfl
 
-class CommMagma (G : Type u) extends Mul G where
-  /-- Multiplication is commutative in a commutative multiplicative magma. -/
-  protected mul_comm : ∀ a b : G, a * b = b * a
-
-class CommSemigroup (α : Type u) extends Semigroup α, CommMagma α where
-
-class CommMonoid (α : Type u) extends Monoid α, CommSemigroup α
-
-class CommRing (α : Type u) extends Ring α, CommMonoid α
-
 class Field (α : Type u) extends CommRing α, DivisionRing α
-
-class LinearOrderedCommRing (α : Type u) extends LinearOrderedRing α, CommMonoid α
 
 class LinearOrderedField (α : Type u) extends LinearOrderedCommRing α, Field α

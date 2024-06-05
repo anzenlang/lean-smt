@@ -149,7 +149,7 @@ class LinearOrder (α : Type u) extends PartialOrder α, Min α, Max α, Ord α 
   decidableLT : @DecidableRel α (· < ·)
 
 section top_level
-instance instLinearOrderNat : LinearOrder Nat where
+instance Nat.instLinearOrder : LinearOrder Nat where
   le_refl := Nat.le_refl
   le_trans := @Nat.le_trans
   le_antisymm := @Nat.le_antisymm
@@ -158,7 +158,7 @@ instance instLinearOrderNat : LinearOrder Nat where
   decidableLT := inferInstance
   lt_iff_le_not_le := @Nat.lt_iff_le_not_le
 
-instance instLinearOrderInt : LinearOrder Int where
+instance Int.instLinearOrder : LinearOrder Int where
   le_refl := Int.le_refl
   le_trans := @Int.le_trans
   le_antisymm := @Int.le_antisymm

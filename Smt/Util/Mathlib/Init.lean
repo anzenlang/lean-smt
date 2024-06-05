@@ -162,6 +162,9 @@ protected
 def castDef {α : Type u} [NatCast α] [Neg α] : Int → α
 | (n : Nat) => n
 | Int.negSucc n => -(n + 1 : Nat)
+
+@[simp, norm_cast]
+theorem cast_id {n : Int} : Int.cast n = n := rfl
 end Int
 
 
