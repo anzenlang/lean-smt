@@ -5,7 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Abdalrhman Mohamed
 -/
 
-import cvc5
+import cvc5.Basic
 import Qq
 
 import Smt.Attribute
@@ -187,7 +187,7 @@ def traceSolve (r : Except Exception (Except SolverError Proof)) : MetaM Message
 open cvc5 in
 def solve (query : String) (timeout : Option Nat) : MetaM (Except Error cvc5.Proof) :=
   profileitM Exception "simp" {} do
-  withTraceNode `smt.solve traceSolve do Solver.run (← TermManager.new) do
+  withTraceNode `smt.solve traceSolve do Solver.run (← Term.Manager.mk) do
     if let .some timeout := timeout then
       Solver.setOption "tlimit" (toString (1000*timeout))
     Solver.setOption "dag-thresh" "0"
@@ -205,7 +205,7 @@ def solve (query : String) (timeout : Option Nat) : MetaM (Except Error cvc5.Pro
       if h : 0 < ps.size then
         trace[smt.solve] "proof:\n{← Solver.proofToString ps[0]}"
         return ps[0]
-    throw (self := instMonadExceptOfMonadExceptOf _ _) (Error.user_error "something went wrong")
+    throw (self := instMonadExceptOfMonadExceptOf _ _) (Error.userError "something went wrong")
 
 syntax (name := reconstruct) "reconstruct" str : tactic
 
