@@ -15,7 +15,8 @@ namespace Smt.Reconstruct.Builtin
 
 open Lean Qq
 
-@[smt_sort_reconstruct] def reconstructBuiltinSort : SortReconstructor := fun s => do match s.getKind with
+@[smt_sort_reconstruct] def reconstructBuiltinSort : SortReconstructor :=
+  fun s => do match s.getKind with
   | .FUNCTION_SORT =>
     let ct ← reconstructSort s.getFunctionCodomainSort!
     let f := fun s a => do
@@ -30,7 +31,7 @@ def getFVarExpr! (n : Name) : MetaM Expr := do
   | some d => return d.toExpr
   | none   => throwError "unknown free variable '{n}'"
 
-def getFVarOrConstExpr! (n : String) : ReconstructM Expr := do
+def getFVarOrConstExpr! (n : String) : ReconstructM ω Expr := do
   match (← read).userNames[n]? with
   | some fv => return .fvar fv
   | none   => match (← getLCtx).findFromUserName? n.toName with
@@ -48,7 +49,8 @@ where
   | [x, y] => q($x ≠ $y)
   | x :: ys => ys.foldr (fun y ys => q($x ≠ $y ∧ $ys)) (go ys)
 
-@[smt_term_reconstruct] def reconstructBuiltin : TermReconstructor := fun t => do match t.getKind with
+@[smt_term_reconstruct] def reconstructBuiltin : TermReconstructor :=
+  fun t => do match t.getKind with
   | .VARIABLE => getFVarExpr! (getVariableName t)
   | .CONSTANT => getFVarOrConstExpr! t.getSymbol!
   | .EQUAL =>
@@ -72,7 +74,7 @@ where
     | _ => return none
   | _ => return none
 where
-  getVariableName (t : cvc5.Term) : Name :=
+  getVariableName {ω : Prop} (t : cvc5.Term ω) : Name :=
     if t.hasSymbol then
       if t.getSymbol!.toName == .anonymous then
         Name.mkSimple t.getSymbol!
@@ -80,7 +82,7 @@ where
         t.getSymbol!.toName
     else Name.num `x t.getId
 
-def reconstructRewrite (pf : cvc5.Proof) : ReconstructM (Option Expr) := do
+def reconstructRewrite (pf : cvc5.Proof ω) : ReconstructM ω (Option Expr) := do
   match pf.getRewriteRule! with
   | .DISTINCT_ELIM =>
     let (u, (α : Q(Sort u))) ← reconstructSortLevelAndSort pf.getResult[0]!.getSort
@@ -144,7 +146,8 @@ def reconstructRewrite (pf : cvc5.Proof) : ReconstructM (Option Expr) := do
     addThm q(ite $c $x (ite (¬$c) $y $z) = ite $c $x $y) q(@Builtin.ite_else_neg_lookahead $c $α $x $y $z $h)
   | _ => return none
 
-@[smt_proof_reconstruct] def reconstructBuiltinProof : ProofReconstructor := fun pf => do match pf.getRule with
+@[smt_proof_reconstruct] def reconstructBuiltinProof : ProofReconstructor :=
+  fun pf => do match pf.getRule with
   | .ASSUME =>
     let p : Q(Prop) ← reconstructTerm pf.getArguments[0]!
     match (← findAssumWithType? p) with
@@ -271,8 +274,8 @@ where
     return .app q(@of_decide_eq_true $p $hp) (.app q(Lean.ofReduceBool $b true) q(Eq.refl true))
   mkNativeAuxDecl (baseName : Name) (type value : Expr) : MetaM Name := do
     let auxName ← match (← getEnv).asyncPrefix? with
-      | none          => Lean.mkAuxName baseName 1
-      | some declName => Lean.mkAuxName (declName ++ baseName) 1
+      | none          => Lean.mkAuxDeclName baseName
+      | some declName => Lean.mkAuxDeclName (declName ++ baseName)
     let decl := Declaration.defnDecl {
       name := auxName, levelParams := [], type, value
       hints := .abbrev

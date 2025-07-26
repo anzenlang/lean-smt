@@ -43,7 +43,7 @@ def validate (n : Name) (t : Name) : AttrM Unit := do
 /-- Registers an SMT attribute with the provided name and description and links
     it against `ext`. -/
 def registerSmtAttr (attrName : Name) (typeName : Name) (attrDescr : String)
-  : IO Unit :=
+  : IO Unit := do
   registerBuiltinAttribute {
     name  := attrName
     descr := attrDescr

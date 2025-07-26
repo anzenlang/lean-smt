@@ -13,7 +13,7 @@ namespace Smt.Reconstruct.UF
 
 open Lean Qq
 
-def getFVarOrConstExpr! (n : String) : ReconstructM Expr := do
+def getFVarOrConstExpr! (n : String) : ReconstructM ω Expr := do
   match (← read).userNames[n]? with
   | some fv => return .fvar fv
   | none   => match (← getLCtx).findFromUserName? n.toName with
@@ -22,11 +22,13 @@ def getFVarOrConstExpr! (n : String) : ReconstructM Expr := do
       let c ← getConstInfo n.toName
       return .const c.name (c.numLevelParams.repeat (.zero :: ·) [])
 
-@[smt_sort_reconstruct] def reconstructUS : SortReconstructor := fun s => do match s.getKind with
+@[smt_sort_reconstruct] def reconstructUS : SortReconstructor :=
+  fun s => do match s.getKind with
   | .UNINTERPRETED_SORT => getFVarOrConstExpr! s.getSymbol!
   | _ => return none
 
-@[smt_term_reconstruct] def reconstructUF : TermReconstructor := fun t => do match t.getKind with
+@[smt_term_reconstruct] def reconstructUF : TermReconstructor :=
+  fun t => do match t.getKind with
   | .APPLY_UF =>
     let mut curr ← reconstructTerm t[0]!
     for i in [1:t.getNumChildren] do
@@ -41,7 +43,7 @@ def getFVarOrConstExpr! (n : String) : ReconstructM Expr := do
     | _ => return none
   | _ => return none
 
-def reconstructRewrite (pf : cvc5.Proof) : ReconstructM (Option Expr) := do
+def reconstructRewrite (pf : cvc5.Proof ω) : ReconstructM ω (Option Expr) := do
   match pf.getRewriteRule! with
   | .EQ_REFL =>
     let (u, (α : Q(Sort u))) ← reconstructSortLevelAndSort pf.getArguments[1]!.getSort
@@ -74,7 +76,8 @@ def reconstructRewrite (pf : cvc5.Proof) : ReconstructM (Option Expr) := do
     addThm q(($t ≠ $s) = ¬($t = $s)) q(@UF.distinct_binary_elim $α $t $s)
   | _ => return none
 
-@[smt_proof_reconstruct] def reconstructUFProof : ProofReconstructor := fun pf => do match pf.getRule with
+@[smt_proof_reconstruct] def reconstructUFProof : ProofReconstructor :=
+  fun pf => do match pf.getRule with
   | .DSL_REWRITE => reconstructRewrite pf
   | .REFL =>
     let (u, (α : Q(Sort u))) ← reconstructSortLevelAndSort pf.getArguments[0]!.getSort

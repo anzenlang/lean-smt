@@ -101,21 +101,23 @@ def smt (cfg : Config) (mv : MVarId) (hs : List Expr) : MetaM (List MVarId) := m
     trace[smt] "goal: {goalType}"
     trace[smt] "\nquery:\n{Command.cmdsAsQuery (cmds ++ [.checkSat])}"
   -- 4. Run the solver.
-  let res ← solve (Command.cmdsAsQuery cmds) cfg.timeout
+  let res ←
+    solve (Command.cmdsAsQuery cmds) cfg.timeout fun pf => do
+    let ctx := { userNames := fvNames₂, native := cfg.native }
+    let (_, ps, p, hp, mvs) ← reconstructProof pf ctx
+    return (ps, p, hp, mvs)
   -- trace[smt] "\nresult: {res}"
   match res with
   | .error e =>
     -- 5a. Print error reason.
     trace[smt] "\nerror reason:\n{repr e}\n"
     throwError "unable to prove goal, either it is false or you need to define more symbols with `smt [foo, bar]`"
-  | .ok pf =>
+  | .ok (ps, p, hp, mvs) =>
     if cfg.trust then
       -- 5b. Trust the result by admitting original goal.
       mv.admit true
       return []
     -- 5c. Reconstruct proof.
-    let ctx := { userNames := fvNames₂, native := cfg.native }
-    let (_, ps, p, hp, mvs) ← reconstructProof pf ctx
     let mv₂ ← mv₂.assert (← mkFreshId) p hp
     let ⟨_, mv₂⟩ ← mv₂.intro1
     let mut gs ← mv₂.apply (← Meta.mkAppOptM ``Prop.implies_of_not_and #[listExpr ps.dropLast q(Prop), goalType])

@@ -20,13 +20,14 @@ namespace Smt.Reconstruct.BitVec
 
 open Lean Qq
 
-@[smt_sort_reconstruct] def reconstructBitVecSort : SortReconstructor := fun s => do match s.getKind with
+@[smt_sort_reconstruct] def reconstructBitVecSort : SortReconstructor :=
+  fun s => do match s.getKind with
   | .BITVECTOR_SORT =>
     let w : Nat := s.getBitVectorSize!.toNat
     return q(BitVec $w)
   | _             => return none
 
-partial def synthDecidableInst (t : cvc5.Term) : ReconstructM Expr := do match t.getKind with
+partial def synthDecidableInst (t : cvc5.Term ω) : ReconstructM ω Expr := do match t.getKind with
     | .CONST_BOOLEAN => return if t.getBooleanValue! then q(instDecidableTrue) else q(instDecidableFalse)
     | .NOT =>
       let p : Q(Prop) ← reconstructTerm t[0]!
@@ -56,7 +57,7 @@ partial def synthDecidableInst (t : cvc5.Term) : ReconstructM Expr := do match t
       let p : Q(Prop) ← reconstructTerm t
       Meta.synthInstance q(Decidable $p)
 where
-   rightAssocOpDecidableInst (op : Expr) (inst : Expr) (t : cvc5.Term) : ReconstructM Expr := do
+   rightAssocOpDecidableInst (op : Expr) (inst : Expr) (t : cvc5.Term ω) : ReconstructM ω Expr := do
     let mut curr ← reconstructTerm t[t.getNumChildren - 1]!
     let mut currInst ← synthDecidableInst t[t.getNumChildren - 1]!
     for i in [1:t.getNumChildren] do
@@ -65,7 +66,8 @@ where
       curr := mkApp2 op (← reconstructTerm ct) curr
     return currInst
 
-@[smt_term_reconstruct] def reconstructBitVec : TermReconstructor := fun t => do match t.getKind with
+@[smt_term_reconstruct] def reconstructBitVec : TermReconstructor :=
+  fun t => do match t.getKind with
   | .CONST_BITVECTOR =>
     let w : Nat := t.getSort.getBitVectorSize!.toNat
     let v : Nat := (t.getBitVectorValue! 10).toNat!
@@ -218,7 +220,7 @@ where
   | .BITVECTOR_FROM_BOOLS =>
     let w : Nat := t.getNumChildren
     let bs : Q(BitVec 0) := q(.nil)
-    let f (bs : Expr) (i : Nat) : ReconstructM Expr := do
+    let f (bs : Expr) (i : Nat) : ReconstructM _ Expr := do
       let p : Q(Prop) ← reconstructTerm t[i]!
       let bs : Q(BitVec $i) := bs
       let hp : Q(Decidable $p) ← synthDecidableInst t[i]!
@@ -232,17 +234,18 @@ where
     return q(«$x».getLsbD $i = true)
   | _ => return none
 where
-  leftAssocOp (op : Expr) (t : cvc5.Term) : ReconstructM Expr := do
+  leftAssocOp {ω : Prop} (op : Expr) (t : cvc5.Term ω) : ReconstructM ω Expr := do
     let mut curr ← reconstructTerm t[0]!
     for i in [1:t.getNumChildren] do
       curr := mkApp2 op curr (← reconstructTerm t[i]!)
     return curr
 
-def reconstructRewrite (pf : cvc5.Proof) : ReconstructM (Option Expr) := do
+def reconstructRewrite (pf : cvc5.Proof ω) : ReconstructM ω (Option Expr) := do
   match pf.getRewriteRule with
   | _ => return none
 
-@[smt_proof_reconstruct] def reconstructBitVecProof : ProofReconstructor := fun pf => do match pf.getRule with
+@[smt_proof_reconstruct] def reconstructBitVecProof : ProofReconstructor :=
+  fun pf => do match pf.getRule with
   | .DSL_REWRITE => reconstructRewrite pf
   | .BV_BITBLAST_STEP =>
     let t := pf.getArguments[0]![0]!

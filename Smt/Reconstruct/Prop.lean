@@ -15,11 +15,13 @@ namespace Smt.Reconstruct.Prop
 
 open Lean Qq
 
-@[smt_sort_reconstruct] def reconstructPropSort : SortReconstructor := fun s => do match s.getKind with
+@[smt_sort_reconstruct] def reconstructPropSort : SortReconstructor :=
+  fun s => do match s.getKind with
   | .BOOLEAN_SORT => return q(Prop)
   | _             => return none
 
-@[smt_term_reconstruct] def reconstructProp : TermReconstructor := fun t => do match t.getKind with
+@[smt_term_reconstruct] def reconstructProp : TermReconstructor :=
+  fun t => do match t.getKind with
   | .CONST_BOOLEAN => return if t.getBooleanValue! then q(True) else q(False)
   | .NOT =>
     let b : Q(Prop) ← reconstructTerm t[0]!
@@ -35,13 +37,13 @@ open Lean Qq
   | .XOR => rightAssocOp q(XOr) t
   | _ => return none
 where
-  rightAssocOp (op : Expr) (t : cvc5.Term) : ReconstructM Expr := do
+  rightAssocOp {ω : Prop} (op : Expr) (t : cvc5.Term ω) : ReconstructM ω Expr := do
     let mut curr ← reconstructTerm t[t.getNumChildren - 1]!
     for i in [1:t.getNumChildren] do
       curr := mkApp2 op (← reconstructTerm t[t.getNumChildren - i - 1]!) curr
     return curr
 
-def reconstructRewrite (pf : cvc5.Proof) : ReconstructM (Option Expr) := do
+def reconstructRewrite (pf : cvc5.Proof ω) : ReconstructM ω (Option Expr) := do
   match pf.getRewriteRule! with
   | .BOOL_DOUBLE_NOT_ELIM =>
     let p : Q(Prop) ← reconstructTerm pf.getArguments[1]!
@@ -228,7 +230,7 @@ def reconstructRewrite (pf : cvc5.Proof) : ReconstructM (Option Expr) := do
     addThm q((¬ite $c $p $q) = ite $c (¬$p) (¬$q)) q(@Prop.bool_not_ite_elim $c $p $q $h)
   | _ => return none
 
-def nary (k : cvc5.Kind) (c : cvc5.Term) : Array cvc5.Term := Id.run do
+def nary (k : cvc5.Kind) (c : cvc5.Term ω) : Array (cvc5.Term ω) := Id.run do
   if c.getKind != k then
     return #[c]
   let mut cs := #[]
@@ -236,13 +238,15 @@ def nary (k : cvc5.Kind) (c : cvc5.Term) : Array cvc5.Term := Id.run do
     cs := cs.push cc
   return cs
 
-def reclausify (c : Array cvc5.Term) (l : cvc5.Term) : Array cvc5.Term :=
+def reclausify (c : Array (cvc5.Term ω)) (l : cvc5.Term ω) : Array (cvc5.Term ω) :=
   if c == nary .OR l then #[l] else c
 
-def clausify (c l : cvc5.Term) : Array cvc5.Term :=
+def clausify (c l : cvc5.Term ω) : Array (cvc5.Term ω) :=
   reclausify (nary .OR c) l
 
-def getResolutionResult (c₁ c₂ : Array cvc5.Term) (pol l : cvc5.Term) : Array cvc5.Term := Id.run do
+def getResolutionResult
+  (c₁ c₂ : Array (cvc5.Term ω)) (pol l : cvc5.Term ω) : Array (cvc5.Term ω)
+:= Id.run do
   let l₁ := if pol.getBooleanValue! then l else l.not!
   let l₂ := if pol.getBooleanValue! then l.not! else l
   let mut ls := #[]
@@ -254,7 +258,9 @@ def getResolutionResult (c₁ c₂ : Array cvc5.Term) (pol l : cvc5.Term) : Arra
       ls := ls.push li
   return ls
 
-def reconstructResolution (c₁ c₂ : Array cvc5.Term) (pol l : cvc5.Term) (hps hqs : Expr) : ReconstructM Expr := do
+def reconstructResolution
+  (c₁ c₂ : Array (cvc5.Term ω)) (pol l : cvc5.Term ω) (hps hqs : Expr)
+: ReconstructM ω Expr := do
   let f t ps := do
     let p : Q(Prop) ← reconstructTerm t
     return q($p :: $ps)
@@ -273,7 +279,7 @@ def reconstructResolution (c₁ c₂ : Array cvc5.Term) (pol l : cvc5.Term) (hps
   else
     return q(@Prop.orN_append_left $ps $qs $hps)
 where
-  rightAssocOp (op : Expr) (ts : Array cvc5.Term) : ReconstructM Expr := do
+  rightAssocOp (op : Expr) (ts : Array (cvc5.Term ω)) : ReconstructM ω Expr := do
     if ts.isEmpty then
       return q(False)
     let mut curr ← reconstructTerm ts[ts.size - 1]!
@@ -281,7 +287,9 @@ where
       curr := mkApp2 op (← reconstructTerm ts[ts.size - i - 1]!) curr
     return curr
 
-def reconstructChainResolution (cs as : Array cvc5.Term) (ps : Array Expr) : ReconstructM Expr := do
+def reconstructChainResolution
+  (cs as : Array (cvc5.Term ω)) (ps : Array Expr)
+: ReconstructM ω Expr := do
   let mut cc := nary .OR cs[0]!
   let mut cp := ps[0]!
   for i in [1:cs.size] do
@@ -292,7 +300,8 @@ def reconstructChainResolution (cs as : Array cvc5.Term) (ps : Array Expr) : Rec
     cc := getResolutionResult cc (clausify cs[i]! l) pol l
   return cp
 
-@[smt_proof_reconstruct] def reconstructPropProof : ProofReconstructor := fun pf => do match pf.getRule with
+@[smt_proof_reconstruct] def reconstructPropProof : ProofReconstructor :=
+  fun pf => do match pf.getRule with
   | .DSL_REWRITE => reconstructRewrite pf
   | .ITE_EQ =>
     let (u, (α : Q(Sort u))) ← reconstructSortLevelAndSort pf.getArguments[0]![1]!.getSort

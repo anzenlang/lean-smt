@@ -27,7 +27,7 @@ namespace Smt.Reconstruct.Quant
 
 open Lean Qq
 
-def getVariableName (t : cvc5.Term) : Name :=
+def getVariableName (t : cvc5.Term ω) : Name :=
   if t.hasSymbol then
     if t.getSymbol!.toName == .anonymous then
       Name.mkSimple t.getSymbol!
@@ -35,23 +35,24 @@ def getVariableName (t : cvc5.Term) : Name :=
       t.getSymbol!.toName
   else Name.num `x t.getId
 
-@[smt_term_reconstruct] def reconstructQuant : TermReconstructor := fun t => do match t.getKind with
+@[smt_term_reconstruct] def reconstructQuant : TermReconstructor :=
+  fun t => do match t.getKind with
   | .FORALL =>
-    let mut xs : Array (Name × (Array Expr → ReconstructM Expr)) := #[]
+    let mut xs : Array (Name × (Array Expr → ReconstructM _ Expr)) := #[]
     for x in t[0]! do
       xs := xs.push (getVariableName x, fun _ => reconstructSort x.getSort)
     Meta.withLocalDeclsD xs fun xs => withNewTermCache do
       let b ← reconstructTerm t[1]!
       Meta.mkForallFVars xs b
   | .EXISTS =>
-    let mut xs : Array (Name × (Array Expr → ReconstructM Expr)) := #[]
+    let mut xs : Array (Name × (Array Expr → ReconstructM _ Expr)) := #[]
     for x in t[0]! do
       xs := xs.push (getVariableName x, fun _ => reconstructSort x.getSort)
     Meta.withLocalDeclsD xs fun xs => withNewTermCache do
       let b ← reconstructTerm t[1]!
       Meta.mkExistsFVars xs b
   | .LAMBDA =>
-    let mut xs : Array (Name × (Array Expr → ReconstructM Expr)) := #[]
+    let mut xs : Array (Name × (Array Expr → ReconstructM _ Expr)) := #[]
     for x in t[0]! do
       xs := xs.push (getVariableName x, fun _ => reconstructSort x.getSort)
     Meta.withLocalDeclsD xs fun xs => withNewTermCache do
@@ -68,8 +69,10 @@ def getVariableName (t : cvc5.Term) : Name :=
     | _ => return none
   | _ => return none
 where
-  reconstructForallSkolems (q : cvc5.Term) (n : Nat) : ReconstructM (Array Expr) := do
-    let mut xs : Array (Name × (Array Expr → ReconstructM Expr)) := #[]
+  reconstructForallSkolems {ω : Prop}
+    (q : cvc5.Term ω) (n : Nat)
+  : ReconstructM ω (Array Expr) := do
+    let mut xs : Array (Name × (Array Expr → ReconstructM ω Expr)) := #[]
     let mut es := #[]
     for x in q[0]! do
       xs := xs.push (getVariableName x, fun _ => reconstructSort x.getSort)
@@ -86,7 +89,7 @@ where
       es := es.push e
     return es
 
-def reconstructRewrite (pf : cvc5.Proof) : ReconstructM (Option Expr) := do
+def reconstructRewrite (pf : cvc5.Proof ω) : ReconstructM ω (Option Expr) := do
   match pf.getRewriteRule! with
   | .BETA_REDUCE =>
     let (u, (α : Q(Sort u))) ← reconstructSortLevelAndSort pf.getResult[0]!.getSort
@@ -242,7 +245,8 @@ def reconstructRewrite (pf : cvc5.Proof) : ReconstructM (Option Expr) := do
       addThm (← reconstructTerm pf.getResult) q(@Quant.var_elim_eq $α $t)
   | _ => return none
 
-@[smt_proof_reconstruct] def reconstructQuantProof : ProofReconstructor := fun pf => do match pf.getRule with
+@[smt_proof_reconstruct] def reconstructQuantProof : ProofReconstructor :=
+  fun pf => do match pf.getRule with
   | .THEORY_REWRITE => reconstructRewrite pf
   | .CONG =>
     let k := pf.getResult[0]!.getKind
@@ -269,7 +273,7 @@ def reconstructRewrite (pf : cvc5.Proof) : ReconstructM (Option Expr) := do
     let xs := pf.getResult[0]![0]!.getChildren
     let ys := pf.getResult[1]![0]!.getChildren
     let g xs := Id.run do
-      let mut is : Std.HashMap cvc5.Term Expr := {}
+      let mut is : Std.HashMap (cvc5.Term _) Expr := {}
       for h : i in [:xs.size] do
         is := is.insert xs[i] (.bvar (xs.size - i - 1))
       return is
@@ -288,7 +292,7 @@ def reconstructRewrite (pf : cvc5.Proof) : ReconstructM (Option Expr) := do
     addThm q($p = $q) q(propext ⟨$hpq, $hqp⟩)
   | _ => return none
 where
-  reconstructForallCong (pf : cvc5.Proof) : ReconstructM Expr := do
+  reconstructForallCong (pf : cvc5.Proof _) : ReconstructM _ Expr := do
     let mut xs := #[]
     for x in pf.getResult[0]![0]! do
       xs := xs.push (getVariableName x, fun _ => reconstructSort x.getSort)
@@ -307,7 +311,7 @@ where
         return (ap, aq, q(forall_congr $hx))
       xs.foldrM f (p, q, h)
     addThm q($p = $q) h
-  reconstructExistsCong (pf : cvc5.Proof) : ReconstructM Expr := do
+  reconstructExistsCong (pf : cvc5.Proof _) : ReconstructM _ Expr := do
     let mut xs := #[]
     for x in pf.getResult[0]![0]! do
       xs := xs.push (getVariableName x, fun _ => reconstructSort x.getSort)
@@ -326,7 +330,7 @@ where
         return (ep, eq, q(exists_congr_eq $hx))
       xs.foldrM f (p, q, h)
     addThm q($p = $q) h
-  reconstructSkolemize (pf : cvc5.Proof) : ReconstructM Expr := do
+  reconstructSkolemize {ω : Prop} (pf : cvc5.Proof ω) : ReconstructM ω Expr := do
     let chRes := pf.getChildren[0]!.getResult
     let es ← reconstructQuant.reconstructForallSkolems chRes[0]! (chRes[0]![0]!.getNumChildren - 1)
     let f := fun h e => do
