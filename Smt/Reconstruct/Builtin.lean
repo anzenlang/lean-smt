@@ -274,8 +274,8 @@ where
     return .app q(@of_decide_eq_true $p $hp) (.app q(Lean.ofReduceBool $b true) q(Eq.refl true))
   mkNativeAuxDecl (baseName : Name) (type value : Expr) : MetaM Name := do
     let auxName ← match (← getEnv).asyncPrefix? with
-      | none          => Lean.mkAuxDeclName baseName
-      | some declName => Lean.mkAuxDeclName (declName ++ baseName)
+      | none          => Lean.mkAuxName baseName 1
+      | some declName => Lean.mkAuxName (declName ++ baseName) 1
     let decl := Declaration.defnDecl {
       name := auxName, levelParams := [], type, value
       hints := .abbrev

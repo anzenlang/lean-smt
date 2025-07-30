@@ -39,6 +39,12 @@ abbrev ProofReconstructor := {ω : Prop} → cvc5.Proof ω → ReconstructM ω (
 
 namespace Reconstruct
 
+instance : MonadRef (cvc5.EnvT ω MetaM) where
+  getRef := liftM (getRef : MetaM _)
+  withRef stx arg := do
+    let arg ← arg
+    liftM (withRef stx (pure arg) : MetaM _)
+
 def useNative : ReconstructM ω Bool :=
   read >>= pure ∘ (·.native)
 
@@ -227,12 +233,6 @@ def traceSolve (r : Except Exception (Except SolverError α)) : MetaM MessageDat
   return match r with
   | .ok (.ok _) => m!"{checkEmoji}"
   | _           => m!"{bombEmoji}"
-
-instance : MonadRef (cvc5.EnvT ω MetaM) where
-  getRef := liftM (getRef : MetaM _)
-  withRef stx arg := do
-    let arg ← arg
-    liftM (withRef stx (pure arg) : MetaM _)
 
 open cvc5 in
 def solve

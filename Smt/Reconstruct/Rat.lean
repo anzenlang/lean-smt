@@ -93,13 +93,13 @@ where
   mkRatLit (n : Nat) : Q(Rat) :=
     let lit : Q(Nat) := Lean.mkRawNatLit n
     q(OfNat.ofNat $lit)
-  leftAssocOp (op : Expr) (t : cvc5.Term) : ReconstructM Expr := do
+  leftAssocOp {ω : Prop} (op : Expr) (t : cvc5.Term ω) : ReconstructM ω Expr := do
     let mut curr ← reconstructTerm t[0]!
     for i in [1:t.getNumChildren] do
       curr := mkApp2 op curr (← reconstructTerm t[i]!)
     return curr
 
-def reconstructRewrite (pf : cvc5.Proof) : ReconstructM (Option Expr) := do
+def reconstructRewrite {ω : Prop} (pf : cvc5.Proof ω) : ReconstructM ω (Option Expr) := do
   match pf.getRewriteRule! with
   | .ARITH_POW_ELIM =>
     if pf.getResult[0]![0]!.getSort.isInteger then return none
@@ -193,7 +193,7 @@ def reconstructRewrite (pf : cvc5.Proof) : ReconstructM (Option Expr) := do
     addThm q((ite ($t ≥ $s) $t $s ≥ $s) = True) q(@Rewrite.max_geq2 $t $s)
   | _ => return none
 
-def reconstructSumUB (pf : cvc5.Proof) : ReconstructM (Option Expr) := do
+def reconstructSumUB (pf : cvc5.Proof ω) : ReconstructM ω (Option Expr) := do
   let f := fun (ks, ls, rs, hs) p => do
     let l : Q(Rat) ← reconstructTerm p.getResult[0]!
     let r : Q(Rat) ← reconstructTerm p.getResult[1]!
@@ -245,7 +245,7 @@ def reconstructSumUB (pf : cvc5.Proof) : ReconstructM (Option Expr) := do
   let (ks, ls, rs, hs) ← pf.getChildren[1:].foldlM f (k, ls, rs, hs)
   addThm (if ks == .LT then q($ls < $rs) else q($ls ≤ $rs)) hs
 
-def reconstructMulAbsComparison (pf : cvc5.Proof) : ReconstructM (Option Expr) := do
+def reconstructMulAbsComparison (pf : cvc5.Proof ω) : ReconstructM ω (Option Expr) := do
   let f := fun (ks, ls, rs, hs) p => do
     let l : Q(Rat) ← reconstructTerm p.getResult[0]![0]!
     let r : Q(Rat) ← reconstructTerm p.getResult[1]![0]!
@@ -273,10 +273,10 @@ def reconstructMulAbsComparison (pf : cvc5.Proof) : ReconstructM (Option Expr) :
   let (ks, ls, rs, hs) ← pf.getChildren[1:].foldlM f (k, ls, rs, hs)
   addThm (if ks == .EQUAL then q($ls = $rs) else q($ls > $rs)) hs
 
-def reconstructMulSign (pf : cvc5.Proof) : ReconstructM (Option Expr) := do
+def reconstructMulSign (pf : cvc5.Proof ω) : ReconstructM ω (Option Expr) := do
   let ts := if pf.getResult[0]!.getKind == .AND then pf.getResult[0]!.getChildren else #[pf.getResult[0]!]
-  let mut hs : Array (Name × (Array Expr → ReconstructM Expr)) := #[]
-  let mut map : Std.HashMap cvc5.Term Nat := {}
+  let mut hs : Array (Name × (Array Expr → ReconstructM ω Expr)) := #[]
+  let mut map : Std.HashMap (cvc5.Term ω) Nat := {}
   for h : i in [0:ts.size] do
     let t := ts[i]
     let p : Q(Prop) ← reconstructTerm t
@@ -300,7 +300,7 @@ def reconstructMulSign (pf : cvc5.Proof) : ReconstructM (Option Expr) := do
     Meta.mkLambdaFVars hs h
   addThm q(andN $ps → $q) q(Builtin.scopes $h)
 where
-  go vs ts hs map (ka : cvc5.Kind) (a : Q(Rat)) (ha : Expr) i : ReconstructM Expr := do
+  go vs ts hs map (ka : cvc5.Kind) (a : Q(Rat)) (ha : Expr) i : ReconstructM ω Expr := do
     if hi : i < vs.size then
       let b : Q(Rat) ← reconstructTerm vs[i]
       let k : cvc5.Kind := ts[map[vs[i]]!]!.getKind
@@ -333,7 +333,7 @@ where
     else
       return ha
 
-def reconstructArithPolyNormRel (pf : cvc5.Proof) : ReconstructM (Option Expr) := do
+def reconstructArithPolyNormRel (pf : cvc5.Proof ω) : ReconstructM ω (Option Expr) := do
   let lcx : Std.Internal.Rat := pf.getChildren[0]!.getResult[0]![0]!.getRationalValue!
   let cx : Q(Rat) ← reconstructTerm pf.getChildren[0]!.getResult[0]![0]!
   let cy : Q(Rat) ← reconstructTerm pf.getChildren[0]!.getResult[1]![0]!
@@ -352,7 +352,7 @@ def reconstructArithPolyNormRel (pf : cvc5.Proof) : ReconstructM (Option Expr) :
   let n ← getThmName k pf.getResult[0]![0]!.getSort.isInteger pf.getResult[1]![0]!.getSort.isInteger (lcx > 0)
   return mkApp9 (.const n []) x₁ x₂ y₁ y₂ cx cy hcx hcy h
 where
-  getThmName (k : cvc5.Kind) (il ir sign : Bool) : ReconstructM Name :=
+  getThmName (k : cvc5.Kind) (il ir sign : Bool) : ReconstructM ω Name :=
     if k == .LT && il == false && ir == false && sign == true then pure ``Rat.lt_of_sub_eq_pos
     else if k == .LT && il == false && ir == false && sign == false then pure ``Rat.lt_of_sub_eq_neg
     else if k == .LT && il == false && ir == true && sign == true then pure ``Rat.lt_of_sub_eq_pos_int_right

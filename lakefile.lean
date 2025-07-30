@@ -5,11 +5,13 @@ open Lake DSL
 require auto from
   git "https://github.com/leanprover-community/lean-auto.git" @ "cd38a184972438d191f1be853e60caadebfc12ec"
 
-require cvc5 from
-  git "https://github.com/anzenlang/lean-cvc5" @ "monadic_rewrite_transformer"
+-- require cvc5 from
+--   git "https://github.com/anzenlang/lean-cvc5" @ "monadic_rewrite_transformer"
+
+require cvc5 from "../../lean-cvc5/monadic_rewrite"
 
 require mathlib from
-  git "https://github.com/leanprover-community/mathlib4.git" @ "v4.21.0"
+  git "https://github.com/leanprover-community/mathlib4.git" @ "v4.20.0"
 
 package smt
 
